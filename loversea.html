@@ -1,0 +1,749 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+    <meta charset="UTF-8" />
+    <title>Le voyage de Manou</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+    const config = {
+        type: Phaser.AUTO,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        parent: "game-container",
+        pixelArt: true,
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        },
+        physics: {
+            default: "arcade",
+            arcade: {
+                gravity: { y: 0 } // Top down game, so no gravity
+            }
+        }
+    };
+
+    const doodoosMsg = [
+        'Je savais que tu me retrouverais ! Je t\'ai laissé un cinnamon roll pour ta fika, j\'espère qu\'il n\'était pas trop sec',
+        'Et tu as retrouvé mon t-shirt hibou ! Merci !',
+        'J\espère que tu as apprécié ce petit cadeau en tout cas, il aurait pu être meilleur mais j\'avais trop hâte de te le donner',
+        'Au final tu sais que ce n\'est qu\'un pretexte pour te dire comme je suis heureux de passer cette saint valentin avec toi',
+        'Puisque je suis en retard je sais que notre soirée s\'est bien passée !',
+        'Merci beaucoup pour tes cadeaux, le nouveau t-shirt est super, l\'aquarelle est très jolie et surtout on va se pacser !',
+        'Les souvenirs que tu as croisé en venant ici font tous partie des meilleurs moments de ma vie, j\'aurais voulu en mettre plus mais il faut savoir se limiter',
+        'Tu es la meilleure pour tout ce que tu me donnes',
+        'Bisou !'
+    ]
+
+    game = new Phaser.Game(config);
+    let controls;
+    var cursors;
+    let ship;
+    let isAboard = false;
+    let memories
+    let closeGame = false
+
+    function preload() {
+        this.load.image("tiles-beach", "./assets/Beach (2).png");
+        this.load.image("tiles-world", "./assets/First Asset pack x4.png");
+        this.load.image("tiles-docks", "./assets/docks (1).png");
+        this.load.image("tiles-kayak", "./assets/kayak (1).png");
+        this.load.image("tiles-travel1", "./assets/Travel (4).png");
+        this.load.image("tiles-travel2", "./assets/Travel (5).png");
+        this.load.image("tiles-viea2", "./assets/viea2 (6).png");
+        this.load.image("fika", "./assets/fika.png");
+        this.load.image("OwlShirt", "./assets/OwlShirt.png");
+        this.load.image("heart", "./assets/heart.png");
+        this.load.tilemapTiledJSON("map", "./loversea.json");
+        this.load.spritesheet('manou', 
+            'assets/CharFullx4 fixed.png',
+            { 
+                frameWidth: 64, 
+                frameHeight: 72,
+                spacing: 32,
+                margin: 12
+            }
+        );
+        this.load.spritesheet('doodoo', 
+            'assets/Char-doodoo.png',
+            { 
+                frameWidth: 64, 
+                frameHeight: 72,
+                spacing: 32,
+                margin: 12
+            }
+        );
+        this.load.spritesheet('ship', 
+            'assets/Ship-final.png',
+            { 
+                frameWidth: 256, 
+                frameHeight: 256
+            }
+        );
+        this.load.audio("Tohu", "./assets/Christopher Larkin - TOHU.mp3")
+        this.load.audio("Ocean", "./assets/1-31 - Ocean.mp3")
+        this.load.audio("SteamGardens", "./assets/1-22 Steam Gardens.mp3")
+    }
+
+    function create() {
+        map = this.make.tilemap({ key: "map" });
+
+        // Parameters are the name you gave the tileset in Tiled and then the key of the tileset image in
+        // Phaser's cache (i.e. the name you used in preload)
+        const tilesetBeach = map.addTilesetImage("Beach (2)", "tiles-beach");
+        const tilesetWorld = map.addTilesetImage("First Asset pack x4", "tiles-world");
+        const tilesetDocks = map.addTilesetImage("docks (1)", "tiles-docks");
+        const tilesetKayak = map.addTilesetImage("kayak (1)", "tiles-kayak");
+        const tilesetTravel1 = map.addTilesetImage("Travel (4)", "tiles-travel1");
+        const tilesetTravel2 = map.addTilesetImage("Travel (5)", "tiles-travel2");
+        const tilesetViea2 = map.addTilesetImage("viea2 (6)", "tiles-viea2");
+
+        // Parameters: layer name (or index) from Tiled, tileset, x, y
+        seaLayer = map.createLayer("Sea", [tilesetBeach,tilesetWorld], 0, 0);
+        landLayer = map.createLayer("Land", [tilesetBeach, tilesetWorld], 0, 0);
+        worldLayer = map.createLayer("World", [tilesetBeach, tilesetWorld, tilesetDocks, tilesetTravel1, tilesetTravel2], 0, 0);
+        itemsLayer = map.createLayer("Items", [tilesetWorld, tilesetKayak, tilesetViea2, tilesetTravel1,], 0, 0);
+
+        worldLayer.setDepth(10);
+        itemsLayer.setDepth(40);
+
+        // Phaser supports multiple cameras, but you can access the default camera like this:
+        const camera = this.cameras.main;
+
+        // Audio
+        landBgMusic = this.sound.add('Tohu')
+        landBgMusic.setLoop(true)
+        landBgMusic.play()
+
+        seaBgMusic = this.sound.add('Ocean').setLoop(true)
+
+        endMusic = this.sound.add('SteamGardens').setLoop(true)
+        
+        // Set up the arrows to control the camera
+        cursors = this.input.keyboard.createCursorKeys();
+        controls = new Phaser.Cameras.Controls.FixedKeyControl({
+            camera: camera,
+            left: cursors.left,
+            right: cursors.right,
+            up: cursors.up,
+            down: cursors.down,
+            speed: 0.5
+        });
+
+        // Constrain the camera so that it isn't allowed to move outside the width/height of tilemap
+        camera.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+
+        this.input.keyboard.once("keydown-D", event => {
+            // Turn on physics debugging to show player's hitbox
+            this.physics.world.createDebugGraphic();
+
+            // Create worldLayer collision graphic above the player, but below the help text
+            const graphics = this.add
+            .graphics()
+            .setAlpha(0.75)
+            .setDepth(20);
+            // memories.renderDebug(graphics, {
+            //     tileColor: null, // Color of non-colliding tiles
+            //     collidingTileColor: new Phaser.Display.Color(243, 134, 48, 255), // Color of colliding tiles
+            //     faceColor: new Phaser.Display.Color(40, 39, 37, 255) // Color of colliding face edges
+            // });
+            // seaLayer.renderDebug(graphics, {
+            //     tileColor: null, // Color of non-colliding tiles
+            //     collidingTileColor: new Phaser.Display.Color(243, 134, 48, 255), // Color of colliding tiles
+            //     faceColor: new Phaser.Display.Color(40, 39, 37, 255) // Color of colliding face edges
+            // });
+        });
+
+        player = this.physics.add.sprite(144, 4080, "manou");
+
+        ship = this.physics.add.sprite(1384, 4330, 'ship');
+        ship.setFrame(2)
+        ship.setDepth(25)
+
+        this.physics.add.overlap(player, ship, dosmthi, null, this);
+
+        player.setDepth(30);
+        // player.setCollideWorldBounds(true);
+
+        seaLayer.setCollisionByProperty({ isSea: true });
+        worldLayer.setCollisionByProperty({ collides: true });
+        landLayer.setCollisionByProperty({ collides: true, isLand: true });
+        itemsLayer.setCollisionByProperty({ collides: true });
+
+        this.anims.create({
+            key: 'left',
+            frames: this.anims.generateFrameNumbers('manou', { start: 4, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'turn',
+            frames: [ { key: 'manou', frame: 12 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'turnLeft',
+            frames: [ { key: 'manou', frame: 4 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'turnRight',
+            frames: [ { key: 'manou', frame: 8 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'turnUp',
+            frames: [ { key: 'manou', frame: 0 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'right',
+            frames: this.anims.generateFrameNumbers('manou', { start: 8, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'up',
+            frames: this.anims.generateFrameNumbers('manou', { start: 0, end: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'down',
+            frames: this.anims.generateFrameNumbers('manou', { start: 12, end: 15 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // Doodoo
+        this.anims.create({
+            key: 'left',
+            frames: this.anims.generateFrameNumbers('doodoo', { start: 4, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'turn',
+            frames: [ { key: 'doodoo', frame: 12 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'turnLeft',
+            frames: [ { key: 'doodoo', frame: 4 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'turnRight',
+            frames: [ { key: 'doodoo', frame: 8 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'turnUp',
+            frames: [ { key: 'doodoo', frame: 0 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'right',
+            frames: this.anims.generateFrameNumbers('doodoo', { start: 8, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'up',
+            frames: this.anims.generateFrameNumbers('doodoo', { start: 0, end: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'down',
+            frames: this.anims.generateFrameNumbers('doodoo', { start: 12, end: 15 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // Ship
+        this.anims.create({
+            key: 'leftsail',
+            frames: [ { key: 'ship', frame: 5 } ],
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'turnsail',
+            frames: [ { key: 'ship', frame: 7 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: 'rightsail',
+            frames: [ { key: 'ship', frame: 4 } ],
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'upsail',
+            frames: [ { key: 'ship', frame: 6 } ],
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'downsail',
+            frames: [ { key: 'ship', frame: 7 } ],
+            frameRate: 10,
+            repeat: -1
+        });
+
+        seaCollider = this.physics.add.collider(player, seaLayer);
+        this.physics.add.collider(player, worldLayer, (sprite, tile) => handleWorldCollision(sprite, tile, this.physics));
+        landCollider = this.physics.add.collider(player, landLayer, null, () => isAboard);
+        landCollider.active = false;
+        this.physics.add.collider(player, itemsLayer);
+
+        camera.startFollow(player);
+
+        const messages = {
+            MCC: 'Un robot de cuisine. Vous avez une soudaine envie de curry de poisson à la mangue.',
+            Chess: 'Ce jeu d\'echec représente l\'affrontement du feu contre l\'eau, Vous ne savez pas quel camp choisir.',
+            Garden: 'Deux plants de tomate et une autre qui n\'a pas encore fleuri...Pourquoi ne sont-ils pas directement plantés dans le sol ?',
+            Babka: 'Une sorte de brioche polonaise géante est en train de cuire. Elle va sûrement être délicieuse.',
+            Kayak: 'Un canoë est posé sur les bords de la rivière. Ce serait un bon point de départ pour une randonnée.',
+            Pura: 'Cette porte de temple balinais est imposante, mais on peut la traverser simplement.',
+            Kyklachurch: 'Une église grecque, les cloches sont prêtes à sonner, mais la porte est fermée',
+            OwlShirt: 'Un t-shirt avec un motif de hibou brodé, quelqu\'un a dû le laisser tomber',
+            Fika: 'Une pâtisserie suédoise est posée sur la table, est-elle à la cannelle ou au safran ?  Une seule manière de le savoir, après tout il est bientôt 4h...'
+        }
+
+        // memories = this.physics.add.group();
+        const fikaSpawnPoint = map.findObject('Objects', o => o.name === 'Fika')
+        fika = this.physics.add.sprite(fikaSpawnPoint.x, fikaSpawnPoint.y, 'fika')
+        .setDepth(25);
+
+        const owlShirtSpawnPoint = map.findObject('Objects', o => o.name === 'OwlShirtSpawnPoint')
+        owlShirt = this.physics.add.sprite(owlShirtSpawnPoint.x, owlShirtSpawnPoint.y, 'OwlShirt')
+        .setDepth(25);
+
+        const endgameGatekeeper = map.createFromObjects('Objects', {
+            name: 'EndgameGatekeeper'
+        })[0]
+        this.physics.world.enable(endgameGatekeeper)
+        endgameGatekeeper.body.setImmovable()
+        console.log(endgameGatekeeper)
+        const gateKeeperCollider = this.physics.add.collider(player, endgameGatekeeper, () => {
+            if (!memories.every(m => m.isDone)) {
+                memoriesDialog.setText('On dirait qu\'il vaut mieux finir d\'explorer les autres îles avant de venir ici')
+                .setY(config.height - memoriesDialog.height)
+
+                player.y += 120
+
+                setTimeout(() => {
+                    memoriesDialog.y = map.heightInPixels
+                }, 3000)
+
+                // memoriesDialog.setY(map.heightInPixels)
+            }
+        }, () => !memories.every(m => m.isDone))
+
+        memories = map.createFromObjects('Memories')
+
+        memories.forEach(m => {
+            this.physics.world.enable(m)
+            m.body.setImmovable()
+            m.y += m.body.height
+            // this.physics.add.overlap(player, m, console.log, null, this)
+        })
+
+        memoriesDialog = this.add.text(0, map.heightInPixels, "", {
+                font: "24px monospace",
+                fill: "#ffffff",
+                padding: { x: 100, y: 50 },
+                backgroundColor: "#000000",
+                width: config.width,
+                wordWrap: { width: config.width - 200, useAdvancedWrap: true }
+            })
+            .setScrollFactor(0)
+            .setDepth(50)
+
+        this.physics.add.overlap(player, memories, (p, mem) => {
+            if (mem.isDone) return;
+            console.log(`Au top le ${mem.name}`)
+            mem.isDone = true
+
+            memoriesDialog
+                .setText(messages[mem.name])
+                .setY(config.height - memoriesDialog.height)
+
+            this.physics.pause()
+
+            this.input.keyboard.on('keyup-SPACE', () => {
+                memoriesDialog.setY(map.heightInPixels)
+                if (mem.name === 'Fika') fika.destroy()
+                if (mem.name === 'OwlShirt') owlShirt.destroy()
+                this.physics.resume()
+                this.input.keyboard.removeKey('SPACE')
+            })
+
+            // if (cursors.space.isDown) {
+            //     this.add.text(400, 200, "Un souvenir apparaît", {
+            //     font: "18px monospace",
+            //     fill: "#ffffff",
+            //     padding: { x: 20, top: 20, bottom: 45 },
+            //     backgroundColor: "#000000"
+            // })
+            // }
+        }, null, this)
+
+        unificationObject  = map.createFromObjects('Objects', {
+            name: 'Unification'
+        })[0]
+        this.physics.world.enable(unificationObject)
+        unificationObject.body.setImmovable()
+
+        const unificationCollider = this.physics.add.collider(player, unificationObject, () => {
+            if (memories.every(m => m.isDone)) {
+                this.sound.stopAll()
+                endMusic.play()
+                const endDialog = this.add.text(0, 0, "MANOU !", {
+                    font: "64px monospace",
+                    fill: "#ffffff",
+                    padding: { x: 30, y: 50 },
+                    backgroundColor: "#000000",
+                    width: config.width,
+                    wordWrap: { width: config.width - 30, useAdvancedWrap: true }
+                })
+                .setScrollFactor(0)
+                .setDepth(50)
+
+                unificationCollider.active = false
+                doodoo = this.physics.add.sprite(4609, 200, "doodoo").setFrame(12).setImmovable();
+
+                heart = this.physics.add.sprite(0, 0, "heart").setDepth(100);
+
+                this.physics.add.collider(player, doodoo, () => {
+                    if (Math.abs(player.y - doodoo.y + player.x - doodoo.x) < 100) {
+                        let nextMessageIndex = 0
+                        this.input.keyboard.on('keyup-SPACE', () => {
+                            if (Math.abs(player.y - doodoo.y) > 10 && Math.abs(player.x - doodoo.x) > 10) return
+                            if (!doodoosMsg[nextMessageIndex]) {
+                                this.input.keyboard.removeKey('SPACE')
+                                closeGame = true
+                                heart.x = player.x
+                                heart.y = player.y
+                            }
+                            if (Math.abs(player.y - doodoo.y) < 10 && Math.abs(player.x - doodoo.x) > 10) doodoo.setFrame(4)
+                            this.physics.pause()
+                            endDialog.setFont('24px monospace').setText(doodoosMsg[nextMessageIndex])
+                            nextMessageIndex ++
+                        })
+                    }
+                })
+            }
+        })
+
+        phscs = this.physics
+    }
+
+    function handleWorldCollision (sprite, tile, physics) {
+        if (!isAboard || !confirmation) {
+            return
+        }
+
+        physics.pause();
+        confirmation.setText('On accoste ici ?')
+        confirmation.setY(player.y - 200)
+        confirmation.setX(player.x - 200)
+        ok.setY(confirmation.y + confirmation.height - 25)
+        ok.setX(confirmation.x)
+        no.setY(ok.y)
+        no.setX(ok.x + ok.width + 5)
+        ok.removeAllListeners()
+        no.removeAllListeners()
+
+        ok.on('pointerdown', () => {
+            const nearestSpawnShipPoint = map.findObject("Objects", o => o.properties.find(p => p.name ==='spawnShip').value && Math.abs(o.x - sprite.x) < 500 && Math.abs(o.y - sprite.y) < 500)
+            landingDir = nearestSpawnShipPoint.properties.find(p => p.name === 'landingDirection').value
+            ship.x = nearestSpawnShipPoint.x 
+            ship.y = nearestSpawnShipPoint.y;
+            ship.setFrame(2)
+            isAboard = false
+            player.setTexture('manou', 12)
+            let {x, y} = nearestSpawnShipPoint
+            switch (landingDir) {
+                case '-x':
+                    x -= 300
+                    break;
+                case '+x':
+                    x += 300
+                    break;
+                case '-y':
+                    y -= 300
+                    ship.setFrame(0)
+                    break;
+                case '+y':
+                    y += 300
+                    ship.setFrame(0)
+                    break;
+            
+                default:
+                    break;
+            }
+            player.x = x
+            player.y = y
+            player.setSize(player.frame.width, player.frame.height)
+            seaLayer.setCollisionByProperty({ isSea: true });
+            seaCollider = physics.add.collider(player, seaLayer)
+            
+            confirmation.setY(map.heightInPixels)
+            ok.setY(map.heightInPixels)
+            no.setY(map.heightInPixels)
+            
+            // physics.world.removeCollider(landCollider)
+            landCollider.active = false
+
+            seaBgMusic.stop()
+            landBgMusic.play()
+
+            physics.resume()
+            
+
+            // landLayer.setCollisionByProperty({ collides: true });
+            // physics.add.collider(player, landLayer)
+        })
+        no.on('pointerdown', () => {
+            confirmation.setY(3000)
+            ok.setY(confirmation.y + confirmation.height - 25)
+            no.setY(ok.y)
+            physics.resume()
+        })
+
+        
+    }
+
+    let confirmation
+    let ok
+    let no
+
+    function dosmthi (firstObj,secondObj,c) {
+        // isAboard = true;
+        // player.setTexture('ship', 6)$
+
+        const handleAllAboard = () => {
+                player.setTexture('ship', 6)
+                isAboard = true
+                ship.y = map.heightInPixels * 2
+                this.physics.world.removeCollider(seaCollider)
+                player.setSize(player.frame.width, player.frame.height)
+                confirmation.setY(map.heightInPixels)
+                ok.setY(map.heightInPixels)
+                no.setY(map.heightInPixels)
+                // landCollider = this.physics.add.collider(player, landLayer)
+                landCollider.active = true;
+                landBgMusic.stop()
+                seaBgMusic.play()
+            }
+
+            const stayOnLand = () => {
+                player.setVelocityX(-100)
+                confirmation.setY(map.heightInPixels)
+                ok.setY(map.heightInPixels)
+                no.setY(map.heightInPixels)
+            }
+        
+        if (Math.abs(firstObj.body.center.x - secondObj.body.center.x) < 30) {
+            if (confirmation) {
+                confirmation.setY(player.y - 200)
+                confirmation.setX(player.x - 200)
+                ok.setY(confirmation.y + confirmation.height - 25)
+                no.setY(ok.y)
+                ok.setX(confirmation.x)
+                no.setX(ok.x + ok.width + 5)
+                confirmation.setText('Prête à prendre la mer ?')
+        
+                ok.removeAllListeners()
+                no.removeAllListeners()
+
+                ok.on('pointerdown', handleAllAboard)
+                no.on('pointerdown', stayOnLand)
+                return
+            }
+            confirmation = this.add.text(400, 200, "Prête à prendre la mer ?", {
+                font: "18px monospace",
+                fill: "#ffffff",
+                padding: { x: 20, top: 20, bottom: 45 },
+                backgroundColor: "#000000"
+            })
+            confirmation.setDepth(100)
+            
+
+            // console.log({confirmation})
+
+            ok = this.add.text(confirmation.x, confirmation.y + confirmation.height - 25, ' - Oui', {
+                font: "18px monospace",
+                fill: "#ffffff",
+                backgroundColor: "#000000"
+            })
+            no = this.add.text(ok.x + ok.width + 5, ok.y, ' - Non', {
+                font: "18px monospace",
+                fill: "#ffffff",
+                backgroundColor: "#000000"
+            })
+
+            ok.setDepth(101)
+            no.setDepth(101)
+            ok.setInteractive()
+            no.setInteractive()
+
+            
+
+            ok.on('pointerdown', handleAllAboard)
+            no.on('pointerdown', stayOnLand)
+            
+        } else {
+            if (confirmation) {
+                confirmation.setY(map.heightInPixels)
+                ok.setY(map.heightInPixels)
+                no.setY(map.heightInPixels)
+            }
+        }
+    }
+
+    let idleAnim = 'turn'
+    let autoAnim = {
+        enabled: false,
+        sprite: null,
+        direction: '',
+        distance: 0
+    }
+
+    velocityFn = {
+        up: 'setVelocityY',
+        down: 'setVelocityY',
+        left: 'setVelocityX',
+        right: 'setVelocityX',
+    }
+
+    function triggerAnimation (sprite, direction, distance) {
+        autoAnim.enabled = true
+        autoAnim = { ...autoAnim, sprite, direction, distance }
+
+    }
+
+    function stopAnimation () {
+        autoAnim.enabled = false
+    }
+
+    function update(time, delta) {
+        // Apply the controls to the camera each update tick of the game
+        player.body.setVelocity(0);
+
+        let speedMultiplier = 2
+        speedMultiplier = cursors.shift.isDown ? 4*speedMultiplier : speedMultiplier
+        speedMultiplier = isAboard ? 3*speedMultiplier : speedMultiplier
+        const movingValue = speedMultiplier * 100
+
+        if (!isAboard && !this.physics.world.isPaused) {
+            if (cursors.left.isDown)
+            {
+                player.setVelocityX(-movingValue);
+                player.anims.play('left', true);
+                idleAnim = 'turnLeft'
+
+            }
+            else if (cursors.right.isDown)
+            {
+                player.setVelocityX(movingValue);
+                player.anims.play('right', true);
+                idleAnim = 'turnRight'
+            }
+            else if (cursors.up.isDown)
+            {
+                player.setVelocityY(-movingValue);
+                player.anims.play('up', true);
+                idleAnim = 'turnUp'
+            }
+
+            else if (cursors.down.isDown)
+            {
+                player.setVelocityY(movingValue);
+                player.anims.play('down', true);
+                idleAnim = 'turn'
+            }
+            else
+            {
+                player.setVelocityX(0);
+                player.anims.play(idleAnim);
+            }
+        } else if (!this.physics.world.isPaused) {
+            if (cursors.left.isDown)
+            {
+                player.setVelocityX(-movingValue);
+                player.anims.play('leftsail', true);
+            }
+            else if (cursors.right.isDown)
+            {
+                player.setVelocityX(movingValue);
+                player.anims.play('rightsail', true);
+            }
+            else if (cursors.up.isDown)
+            {
+                player.setVelocityY(-movingValue);
+                player.anims.play('upsail', true);
+            }
+
+            else if (cursors.down.isDown)
+            {
+                player.setVelocityY(movingValue);
+                player.anims.play('downsail', true);
+            }
+        }
+
+        else if (closeGame && heart.scale < 400) {
+            heart.scale ++
+        } else if (closeGame && heart.scale >= 400) {
+            shit = this.add.text(400, 300, "Je t'aime !", {
+                font: "128px monospace",
+                fill: "#ffffff",
+                padding: { x: 100, y: 50 },
+                width: config.width,
+                wordWrap: { width: config.width - 200, useAdvancedWrap: true }
+            })
+            .setScrollFactor(0)
+            .setDepth(1000)
+        }
+        // if (autoAnim.enabled && player.y > 500) {
+        //     spritePosition = autoAnim.sprite[autoAnim.direction === 'up' ? 'y' : 'x']
+        //     autoAnim.sprite[velocityFn[autoAnim.direction]](autoAnim.distance < 0 ? -movingValue : movingValue)
+        //     player.anims.play(autoAnim.direction, true);
+        // }
+        // if (cursors.space.isDown) {
+        //         isAboard = !isAboard
+        //     }
+
+        player.body.velocity.normalize().scale(movingValue);
+    }
+</script>
