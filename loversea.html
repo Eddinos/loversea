@@ -92,6 +92,7 @@
         this.load.audio("Tohu", "./assets/Christopher Larkin - TOHU.mp3")
         this.load.audio("Ocean", "./assets/1-31 - Ocean.mp3")
         this.load.audio("SteamGardens", "./assets/1-22 Steam Gardens.mp3")
+        this.load.audio("Bite", "./assets/Bite.mp3")
     }
 
     function create() {
@@ -127,6 +128,8 @@
         seaBgMusic = this.sound.add('Ocean').setLoop(true)
 
         endMusic = this.sound.add('SteamGardens').setLoop(true)
+
+        biteSound = this.sound.add('Bite')
         
         // Set up the arrows to control the camera
         cursors = this.input.keyboard.createCursorKeys();
@@ -391,7 +394,6 @@
 
         this.physics.add.overlap(player, memories, (p, mem) => {
             if (mem.isDone) return;
-            console.log(`Au top le ${mem.name}`)
             mem.isDone = true
 
             memoriesDialog
@@ -402,20 +404,14 @@
 
             this.input.keyboard.on('keyup-SPACE', () => {
                 memoriesDialog.setY(map.heightInPixels)
-                if (mem.name === 'Fika') fika.destroy()
+                if (mem.name === 'Fika') {
+                    fika.destroy()
+                    biteSound.play()
+                }
                 if (mem.name === 'OwlShirt') owlShirt.destroy()
                 this.physics.resume()
                 this.input.keyboard.removeKey('SPACE')
             })
-
-            // if (cursors.space.isDown) {
-            //     this.add.text(400, 200, "Un souvenir apparaît", {
-            //     font: "18px monospace",
-            //     fill: "#ffffff",
-            //     padding: { x: 20, top: 20, bottom: 45 },
-            //     backgroundColor: "#000000"
-            // })
-            // }
         }, null, this)
 
         unificationObject  = map.createFromObjects('Objects', {
