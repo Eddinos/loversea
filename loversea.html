@@ -13,6 +13,8 @@
 <body>
 
 <script type="text/javascript">
+    // import doodoosMsg from './doodoosMsg'
+
     const config = {
         type: Phaser.AUTO,
         width: window.innerWidth,
@@ -32,7 +34,7 @@
         }
     };
 
-    const doodoosMsg = [
+    const doodoosMsg = location.search.includes('choupinette') ? [
         'Je savais que tu me retrouverais ! Je t\'ai laissé un cinnamon roll pour ta fika, j\'espère qu\'il n\'était pas trop sec',
         'Et tu as retrouvé mon t-shirt hibou ! Merci !',
         'J\espère que tu as apprécié ce petit cadeau en tout cas, il aurait pu être meilleur mais j\'avais trop hâte de te le donner',
@@ -42,7 +44,7 @@
         'Les souvenirs que tu as croisé en venant ici font tous partie des meilleurs moments de ma vie, j\'aurais voulu en mettre plus mais il faut savoir se limiter',
         'Tu es la meilleure pour tout ce que tu me donnes',
         'Bisou !'
-    ]
+    ] : ['dialogues mièvres', 'Bisous !']
 
     game = new Phaser.Game(config);
     let controls;
@@ -83,7 +85,7 @@
             }
         );
         this.load.spritesheet('ship', 
-            'assets/Ship-final.png',
+            'assets/ship-anim-sailing.png',
             { 
                 frameWidth: 256, 
                 frameHeight: 256
@@ -290,8 +292,8 @@
         // Ship
         this.anims.create({
             key: 'leftsail',
-            frames: [ { key: 'ship', frame: 5 } ],
-            frameRate: 10,
+            frames: this.anims.generateFrameNumbers('ship', { start: 8, end: 9 }),
+            frameRate: 7,
             repeat: -1
         });
 
@@ -303,22 +305,22 @@
 
         this.anims.create({
             key: 'rightsail',
-            frames: [ { key: 'ship', frame: 4 } ],
-            frameRate: 10,
+            frames: this.anims.generateFrameNumbers('ship', { start: 5, end: 6 }),
+            frameRate: 7,
             repeat: -1
         });
 
         this.anims.create({
             key: 'upsail',
-            frames: [ { key: 'ship', frame: 6 } ],
-            frameRate: 10,
+            frames: this.anims.generateFrameNumbers('ship', { start: 11, end: 12 }),
+            frameRate: 7,
             repeat: -1
         });
 
         this.anims.create({
             key: 'downsail',
-            frames: [ { key: 'ship', frame: 7 } ],
-            frameRate: 10,
+            frames: this.anims.generateFrameNumbers('ship', { start: 14, end: 15 }),
+            frameRate: 7,
             repeat: -1
         });
 
@@ -721,7 +723,7 @@
         else if (closeGame && heart.scale < 400) {
             heart.scale ++
         } else if (closeGame && heart.scale >= 400) {
-            shit = this.add.text(400, 300, "Je t'aime !", {
+            shit = this.add.text(400, 300, location.search.includes('choupinette') ? "Je t'aime !" : "La fin !", {
                 font: "128px monospace",
                 fill: "#ffffff",
                 padding: { x: 100, y: 50 },
