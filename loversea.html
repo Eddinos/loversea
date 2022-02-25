@@ -46,6 +46,76 @@
         'Bisou !'
     ] : ['dialogues mièvres', 'Bisous !']
 
+    const memoryMessages = {
+        MCC: 'Un robot de cuisine. Vous avez une soudaine envie de curry de poisson à la mangue.',
+        Chess: 'Ce jeu d\'echec représente l\'affrontement du feu contre l\'eau, Vous ne savez pas quel camp choisir.',
+        Garden: 'Deux plants de tomate et une autre qui n\'a pas encore fleuri...Pourquoi ne sont-ils pas directement plantés dans le sol ?',
+        Babka: 'Une sorte de brioche polonaise géante est en train de cuire. Elle va sûrement être délicieuse.',
+        Kayak: 'Un canoë est posé sur les bords de la rivière. Ce serait un bon point de départ pour une randonnée.',
+        Pura: 'Cette porte de temple balinais est imposante, mais on peut la traverser simplement.',
+        Kyklachurch: 'Une église grecque, les cloches sont prêtes à sonner, mais la porte est fermée',
+        OwlShirt: 'Un t-shirt avec un motif de hibou brodé, quelqu\'un a dû le laisser tomber',
+        Fika: 'Une pâtisserie suédoise est posée sur la table, est-elle à la cannelle ou au safran ?  Une seule manière de le savoir, après tout il est bientôt 4h...'
+    }
+
+    function useAudio (audioName, scene) {
+        return scene.sound.add(audioName).setLoop(true)
+    }
+
+    function createCharAnims ({ frameName, scene }) {
+        scene.anims.create({
+            key: 'left',
+            frames: scene.anims.generateFrameNumbers(frameName, { start: 4, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        scene.anims.create({
+            key: 'turn',
+            frames: [ { key: frameName, frame: 12 } ],
+            frameRate: 20
+        });
+
+        scene.anims.create({
+            key: 'turnLeft',
+            frames: [ { key: frameName, frame: 4 } ],
+            frameRate: 20
+        });
+
+        scene.anims.create({
+            key: 'turnRight',
+            frames: [ { key: frameName, frame: 8 } ],
+            frameRate: 20
+        });
+
+        scene.anims.create({
+            key: 'turnUp',
+            frames: [ { key: frameName, frame: 0 } ],
+            frameRate: 20
+        });
+
+        scene.anims.create({
+            key: 'right',
+            frames: scene.anims.generateFrameNumbers(frameName, { start: 8, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        scene.anims.create({
+            key: 'up',
+            frames: scene.anims.generateFrameNumbers(frameName, { start: 0, end: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        scene.anims.create({
+            key: 'down',
+            frames: scene.anims.generateFrameNumbers(frameName, { start: 12, end: 15 }),
+            frameRate: 10,
+            repeat: -1
+        });
+    }
+
     game = new Phaser.Game(config);
     let controls;
     var cursors;
@@ -123,15 +193,12 @@
         const camera = this.cameras.main;
 
         // Audio
-        landBgMusic = this.sound.add('Tohu')
-        landBgMusic.setLoop(true)
+        landBgMusic = useAudio('Tohu', this)
+        seaBgMusic = useAudio('Ocean', this)
+        endMusic = useAudio('SteamGardens', this)
+        biteSound = useAudio('Bite', this)
+
         landBgMusic.play()
-
-        seaBgMusic = this.sound.add('Ocean').setLoop(true)
-
-        endMusic = this.sound.add('SteamGardens').setLoop(true)
-
-        biteSound = this.sound.add('Bite')
         
         // Set up the arrows to control the camera
         cursors = this.input.keyboard.createCursorKeys();
@@ -168,126 +235,37 @@
             // });
         });
 
-        player = this.physics.add.sprite(144, 4080, "manou");
+        player = this.physics.add.sprite(144, 4080, "manou")
+                 .setDepth(30);
 
-        ship = this.physics.add.sprite(1384, 4330, 'ship');
-        ship.setFrame(2)
-        ship.setDepth(25)
+        ship = this.physics.add.sprite(1384, 4330, 'ship')
+               .setFrame(2)
+               .setDepth(25)
 
-        this.physics.add.overlap(player, ship, dosmthi, null, this);
-
-        player.setDepth(30);
-        // player.setCollideWorldBounds(true);
+        this.physics.add.overlap(player, ship, displayBoardingDialog, null, this);
 
         seaLayer.setCollisionByProperty({ isSea: true });
         worldLayer.setCollisionByProperty({ collides: true });
         landLayer.setCollisionByProperty({ collides: true, isLand: true });
         itemsLayer.setCollisionByProperty({ collides: true });
 
-        this.anims.create({
-            key: 'left',
-            frames: this.anims.generateFrameNumbers('manou', { start: 4, end: 7 }),
-            frameRate: 10,
-            repeat: -1
-        });
+        // Manou
 
-        this.anims.create({
-            key: 'turn',
-            frames: [ { key: 'manou', frame: 12 } ],
-            frameRate: 20
-        });
-
-        this.anims.create({
-            key: 'turnLeft',
-            frames: [ { key: 'manou', frame: 4 } ],
-            frameRate: 20
-        });
-
-        this.anims.create({
-            key: 'turnRight',
-            frames: [ { key: 'manou', frame: 8 } ],
-            frameRate: 20
-        });
-
-        this.anims.create({
-            key: 'turnUp',
-            frames: [ { key: 'manou', frame: 0 } ],
-            frameRate: 20
-        });
-
-        this.anims.create({
-            key: 'right',
-            frames: this.anims.generateFrameNumbers('manou', { start: 8, end: 11 }),
-            frameRate: 10,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'up',
-            frames: this.anims.generateFrameNumbers('manou', { start: 0, end: 3 }),
-            frameRate: 10,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'down',
-            frames: this.anims.generateFrameNumbers('manou', { start: 12, end: 15 }),
-            frameRate: 10,
-            repeat: -1
-        });
+        createCharAnims({
+            animCreate: this.anims.create,
+            animGenerateFrameNb: this.anims.generateFrameNumbers,
+            frameName: 'manou',
+            scene: this
+        })
 
         // Doodoo
-        this.anims.create({
-            key: 'left',
-            frames: this.anims.generateFrameNumbers('doodoo', { start: 4, end: 7 }),
-            frameRate: 10,
-            repeat: -1
-        });
 
-        this.anims.create({
-            key: 'turn',
-            frames: [ { key: 'doodoo', frame: 12 } ],
-            frameRate: 20
-        });
-
-        this.anims.create({
-            key: 'turnLeft',
-            frames: [ { key: 'doodoo', frame: 4 } ],
-            frameRate: 20
-        });
-
-        this.anims.create({
-            key: 'turnRight',
-            frames: [ { key: 'doodoo', frame: 8 } ],
-            frameRate: 20
-        });
-
-        this.anims.create({
-            key: 'turnUp',
-            frames: [ { key: 'doodoo', frame: 0 } ],
-            frameRate: 20
-        });
-
-        this.anims.create({
-            key: 'right',
-            frames: this.anims.generateFrameNumbers('doodoo', { start: 8, end: 11 }),
-            frameRate: 10,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'up',
-            frames: this.anims.generateFrameNumbers('doodoo', { start: 0, end: 3 }),
-            frameRate: 10,
-            repeat: -1
-        });
-
-        this.anims.create({
-            key: 'down',
-            frames: this.anims.generateFrameNumbers('doodoo', { start: 12, end: 15 }),
-            frameRate: 10,
-            repeat: -1
-        });
+        createCharAnims({
+            animCreate: this.anims.create,
+            animGenerateFrameNb: this.anims.generateFrameNumbers,
+            frameName: 'doodoo',
+            scene: this
+        })
 
         // Ship
         this.anims.create({
@@ -331,18 +309,6 @@
         this.physics.add.collider(player, itemsLayer);
 
         camera.startFollow(player);
-
-        const messages = {
-            MCC: 'Un robot de cuisine. Vous avez une soudaine envie de curry de poisson à la mangue.',
-            Chess: 'Ce jeu d\'echec représente l\'affrontement du feu contre l\'eau, Vous ne savez pas quel camp choisir.',
-            Garden: 'Deux plants de tomate et une autre qui n\'a pas encore fleuri...Pourquoi ne sont-ils pas directement plantés dans le sol ?',
-            Babka: 'Une sorte de brioche polonaise géante est en train de cuire. Elle va sûrement être délicieuse.',
-            Kayak: 'Un canoë est posé sur les bords de la rivière. Ce serait un bon point de départ pour une randonnée.',
-            Pura: 'Cette porte de temple balinais est imposante, mais on peut la traverser simplement.',
-            Kyklachurch: 'Une église grecque, les cloches sont prêtes à sonner, mais la porte est fermée',
-            OwlShirt: 'Un t-shirt avec un motif de hibou brodé, quelqu\'un a dû le laisser tomber',
-            Fika: 'Une pâtisserie suédoise est posée sur la table, est-elle à la cannelle ou au safran ?  Une seule manière de le savoir, après tout il est bientôt 4h...'
-        }
 
         // memories = this.physics.add.group();
         const fikaSpawnPoint = map.findObject('Objects', o => o.name === 'Fika')
@@ -396,22 +362,23 @@
 
         this.physics.add.overlap(player, memories, (p, mem) => {
             if (mem.isDone) return;
-            mem.isDone = true
+            
 
             memoriesDialog
-                .setText(messages[mem.name])
+                .setText(memoryMessages[mem.name])
                 .setY(config.height - memoriesDialog.height)
 
             this.physics.pause()
 
             this.input.keyboard.on('keyup-SPACE', () => {
                 memoriesDialog.setY(map.heightInPixels)
-                if (mem.name === 'Fika') {
+                if (mem.name === 'Fika' && !mem.isDone) {
                     fika.destroy()
                     biteSound.play()
                 }
                 if (mem.name === 'OwlShirt') owlShirt.destroy()
                 this.physics.resume()
+                mem.isDone = true
                 this.input.keyboard.removeKey('SPACE')
             })
         }, null, this)
@@ -546,7 +513,7 @@
     let ok
     let no
 
-    function dosmthi (firstObj,secondObj,c) {
+    function displayBoardingDialog (firstObj,secondObj,c) {
         // isAboard = true;
         // player.setTexture('ship', 6)$
 
@@ -631,6 +598,7 @@
     }
 
     let idleAnim = 'turn'
+    let idleShipFrame = 4
     let autoAnim = {
         enabled: false,
         sprite: null,
@@ -701,22 +669,29 @@
             {
                 player.setVelocityX(-movingValue);
                 player.anims.play('leftsail', true);
+                idleShipFrame = 7
             }
             else if (cursors.right.isDown)
             {
                 player.setVelocityX(movingValue);
                 player.anims.play('rightsail', true);
+                idleShipFrame = 4
             }
             else if (cursors.up.isDown)
             {
                 player.setVelocityY(-movingValue);
                 player.anims.play('upsail', true);
+                idleShipFrame = 10
             }
 
             else if (cursors.down.isDown)
             {
                 player.setVelocityY(movingValue);
                 player.anims.play('downsail', true);
+                idleShipFrame = 13
+            }
+            else {
+                player.setFrame(idleShipFrame);
             }
         }
 
