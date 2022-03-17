@@ -323,10 +323,6 @@
             ship.y = map.heightInPixels * 2
             this.physics.world.removeCollider(seaCollider)
             player.setSize(player.frame.width, player.frame.height)
-            // confirmation.setY(map.heightInPixels)
-            // ok.setY(map.heightInPixels)
-            // no.setY(map.heightInPixels)
-            // landCollider = this.physics.add.collider(player, landLayer)
             landCollider.active = true;
             landBgMusic.stop()
             seaBgMusic.play()
@@ -334,9 +330,6 @@
 
         stayOnLand = () => {
             player.setVelocityX(-100)
-            // confirmation.setY(map.heightInPixels)
-            // ok.setY(map.heightInPixels)
-            // no.setY(map.heightInPixels)
         }
 
         confirmation = dialogManager({
@@ -521,18 +514,14 @@
             ok.setY(map.heightInPixels)
             no.setY(map.heightInPixels)
 
-            // physics.world.removeCollider(landCollider)
             landCollider.active = false
 
             seaBgMusic.stop()
             landBgMusic.play()
 
             physics.resume()
-
-
-            // landLayer.setCollisionByProperty({ collides: true });
-            // physics.add.collider(player, landLayer)
         })
+
         no.on('pointerdown', () => {
             confirmation.setY(3000)
             ok.setY(confirmation.y + confirmation.height - 25)
@@ -542,10 +531,6 @@
 
 
     }
-
-    // let confirmation
-    let ok
-    let no
 
     function dialogManager ({scene, text, confirmCallback, cancelCallback}) {
         let dialog;
@@ -617,66 +602,15 @@
         }
     }
 
-    // const carotte = dialogManager({
-    //     scene: this,
-    //     text: 'Prête à prendre la mer ?'
-    // })
-
     function displayBoardingDialog (firstObj,secondObj,c) {
 
 
         if (Math.abs(firstObj.body.center.x - secondObj.body.center.x) < 30) {
             if (confirmation.getDialog()) {
-                // confirmation.setY(player.y - 200)
-                // confirmation.setX(player.x - 200)
-                // ok.setY(confirmation.y + confirmation.height - 25)
-                // no.setY(ok.y)
-                // ok.setX(confirmation.x)
-                // no.setX(ok.x + ok.width + 5)
-                // confirmation.setText('Prête à prendre la mer ?')
-
-                confirmation.open(player)
-
-                // ok.removeAllListeners()
-                // no.removeAllListeners()
-
-                // ok.on('pointerdown', handleAllAboard)
-                // no.on('pointerdown', stayOnLand)
-                return
+                return confirmation.open(player)
             }
-            // confirmation = this.add.text(400, 200, "Prête à prendre la mer ?", {
-            //     font: "18px monospace",
-            //     fill: "#ffffff",
-            //     padding: { x: 20, top: 20, bottom: 45 },
-            //     backgroundColor: "#000000"
-            // }).setDepth(100)
-            //
-            // ok = this.add.text(confirmation.x, confirmation.y + confirmation.height - 25, ' - Oui', {
-            //     font: "18px monospace",
-            //     fill: "#ffffff",
-            //     backgroundColor: "#000000"
-            // })
-            // no = this.add.text(ok.x + ok.width + 5, ok.y, ' - Non', {
-            //     font: "18px monospace",
-            //     fill: "#ffffff",
-            //     backgroundColor: "#000000"
-            // })
-            //
-            // ok.setDepth(101)
-            // no.setDepth(101)
-            // ok.setInteractive()
-            // no.setInteractive()
-            //
-            //
-            //
-            // ok.on('pointerdown', handleAllAboard)
-            // no.on('pointerdown', stayOnLand)
-
         } else {
             if (confirmation.getDialog()) {
-                // confirmation.setY(map.heightInPixels)
-                // ok.setY(map.heightInPixels)
-                // no.setY(map.heightInPixels)
                 confirmation.close()
             }
         }
@@ -698,15 +632,14 @@
         right: 'setVelocityX',
     }
 
-    function triggerAnimation (sprite, direction, distance) {
-        autoAnim.enabled = true
-        autoAnim = { ...autoAnim, sprite, direction, distance }
-
-    }
-
-    function stopAnimation () {
-        autoAnim.enabled = false
-    }
+    // function triggerAnimation (sprite, direction, distance) {
+    //     autoAnim.enabled = true
+    //     autoAnim = { ...autoAnim, sprite, direction, distance }
+    // }
+    //
+    // function stopAnimation () {
+    //     autoAnim.enabled = false
+    // }
 
     function update(time, delta) {
         // Apply the controls to the camera each update tick of the game
