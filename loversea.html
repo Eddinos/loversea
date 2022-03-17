@@ -1,6 +1,6 @@
-<!doctype html> 
-<html lang="en"> 
-<head> 
+<!doctype html>
+<html lang="en">
+<head>
     <meta charset="UTF-8" />
     <title>Le voyage de Manou</title>
     <script src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
@@ -116,6 +116,12 @@
         });
     }
 
+    const getAddSpriteFn = ({scene, map}) => ({ objectName, spriteName, objectLayer = 'Objects'}) => {
+        const spawnPoint = map.findObject('Objects', o => o.name === objectName)
+        return scene.physics.add.sprite(spawnPoint.x, spawnPoint.y, spriteName)
+                        .setDepth(25)
+    }
+
     game = new Phaser.Game(config);
     let controls;
     var cursors;
@@ -136,28 +142,28 @@
         this.load.image("OwlShirt", "./assets/OwlShirt.png");
         this.load.image("heart", "./assets/heart.png");
         this.load.tilemapTiledJSON("map", "./loversea.json");
-        this.load.spritesheet('manou', 
+        this.load.spritesheet('manou',
             'assets/CharFullx4 fixed.png',
-            { 
-                frameWidth: 64, 
+            {
+                frameWidth: 64,
                 frameHeight: 72,
                 spacing: 32,
                 margin: 12
             }
         );
-        this.load.spritesheet('doodoo', 
+        this.load.spritesheet('doodoo',
             'assets/Char-doodoo.png',
-            { 
-                frameWidth: 64, 
+            {
+                frameWidth: 64,
                 frameHeight: 72,
                 spacing: 32,
                 margin: 12
             }
         );
-        this.load.spritesheet('ship', 
+        this.load.spritesheet('ship',
             'assets/ship-anim-sailing.png',
-            { 
-                frameWidth: 256, 
+            {
+                frameWidth: 256,
                 frameHeight: 256
             }
         );
@@ -199,7 +205,7 @@
         biteSound = useAudio('Bite', this)
 
         landBgMusic.play()
-        
+
         // Set up the arrows to control the camera
         cursors = this.input.keyboard.createCursorKeys();
         controls = new Phaser.Cameras.Controls.FixedKeyControl({
@@ -310,21 +316,53 @@
 
         camera.startFollow(player);
 
-        // memories = this.physics.add.group();
-        const fikaSpawnPoint = map.findObject('Objects', o => o.name === 'Fika')
-        fika = this.physics.add.sprite(fikaSpawnPoint.x, fikaSpawnPoint.y, 'fika')
-        .setDepth(25);
+        // initiate confirmationdialog
+        handleAllAboard = () => {
+            player.setTexture('ship', 6)
+            isAboard = true
+            ship.y = map.heightInPixels * 2
+            this.physics.world.removeCollider(seaCollider)
+            player.setSize(player.frame.width, player.frame.height)
+            // confirmation.setY(map.heightInPixels)
+            // ok.setY(map.heightInPixels)
+            // no.setY(map.heightInPixels)
+            // landCollider = this.physics.add.collider(player, landLayer)
+            landCollider.active = true;
+            landBgMusic.stop()
+            seaBgMusic.play()
+        }
 
-        const owlShirtSpawnPoint = map.findObject('Objects', o => o.name === 'OwlShirtSpawnPoint')
-        owlShirt = this.physics.add.sprite(owlShirtSpawnPoint.x, owlShirtSpawnPoint.y, 'OwlShirt')
-        .setDepth(25);
+        stayOnLand = () => {
+            player.setVelocityX(-100)
+            // confirmation.setY(map.heightInPixels)
+            // ok.setY(map.heightInPixels)
+            // no.setY(map.heightInPixels)
+        }
+
+        confirmation = dialogManager({
+            scene: this,
+            text: 'Prête à prendre la mer ?',
+            confirmCallback: handleAllAboard,
+            cancelCallback: stayOnLand
+        })
+
+        const addSpriteFromSpawnPoint = getAddSpriteFn({scene: this, map})
+        const fika = addSpriteFromSpawnPoint({
+            objectName: 'Fika',
+            spriteName: 'fika'
+        })
+
+        const owlShirt = addSpriteFromSpawnPoint({
+            objectName: 'OwlShirtSpawnPoint',
+            spriteName: 'OwlShirt'
+        })
 
         const endgameGatekeeper = map.createFromObjects('Objects', {
             name: 'EndgameGatekeeper'
         })[0]
         this.physics.world.enable(endgameGatekeeper)
         endgameGatekeeper.body.setImmovable()
-        console.log(endgameGatekeeper)
+
         const gateKeeperCollider = this.physics.add.collider(player, endgameGatekeeper, () => {
             if (!memories.every(m => m.isDone)) {
                 memoriesDialog.setText('On dirait qu\'il vaut mieux finir d\'explorer les autres îles avant de venir ici')
@@ -335,8 +373,6 @@
                 setTimeout(() => {
                     memoriesDialog.y = map.heightInPixels
                 }, 3000)
-
-                // memoriesDialog.setY(map.heightInPixels)
             }
         }, () => !memories.every(m => m.isDone))
 
@@ -346,7 +382,6 @@
             this.physics.world.enable(m)
             m.body.setImmovable()
             m.y += m.body.height
-            // this.physics.add.overlap(player, m, console.log, null, this)
         })
 
         memoriesDialog = this.add.text(0, map.heightInPixels, "", {
@@ -362,7 +397,6 @@
 
         this.physics.add.overlap(player, memories, (p, mem) => {
             if (mem.isDone) return;
-            
 
             memoriesDialog
                 .setText(memoryMessages[mem.name])
@@ -430,7 +464,7 @@
             }
         })
 
-        phscs = this.physics
+        scene = this
     }
 
     function handleWorldCollision (sprite, tile, physics) {
@@ -452,7 +486,7 @@
         ok.on('pointerdown', () => {
             const nearestSpawnShipPoint = map.findObject("Objects", o => o.properties.find(p => p.name ==='spawnShip').value && Math.abs(o.x - sprite.x) < 500 && Math.abs(o.y - sprite.y) < 500)
             landingDir = nearestSpawnShipPoint.properties.find(p => p.name === 'landingDirection').value
-            ship.x = nearestSpawnShipPoint.x 
+            ship.x = nearestSpawnShipPoint.x
             ship.y = nearestSpawnShipPoint.y;
             ship.setFrame(2)
             isAboard = false
@@ -473,7 +507,7 @@
                     y += 300
                     ship.setFrame(0)
                     break;
-            
+
                 default:
                     break;
             }
@@ -482,11 +516,11 @@
             player.setSize(player.frame.width, player.frame.height)
             seaLayer.setCollisionByProperty({ isSea: true });
             seaCollider = physics.add.collider(player, seaLayer)
-            
+
             confirmation.setY(map.heightInPixels)
             ok.setY(map.heightInPixels)
             no.setY(map.heightInPixels)
-            
+
             // physics.world.removeCollider(landCollider)
             landCollider.active = false
 
@@ -494,7 +528,7 @@
             landBgMusic.play()
 
             physics.resume()
-            
+
 
             // landLayer.setCollisionByProperty({ collides: true });
             // physics.add.collider(player, landLayer)
@@ -506,93 +540,144 @@
             physics.resume()
         })
 
-        
+
     }
 
-    let confirmation
+    // let confirmation
     let ok
     let no
 
-    function displayBoardingDialog (firstObj,secondObj,c) {
-        // isAboard = true;
-        // player.setTexture('ship', 6)$
-
-        const handleAllAboard = () => {
-                player.setTexture('ship', 6)
-                isAboard = true
-                ship.y = map.heightInPixels * 2
-                this.physics.world.removeCollider(seaCollider)
-                player.setSize(player.frame.width, player.frame.height)
-                confirmation.setY(map.heightInPixels)
-                ok.setY(map.heightInPixels)
-                no.setY(map.heightInPixels)
-                // landCollider = this.physics.add.collider(player, landLayer)
-                landCollider.active = true;
-                landBgMusic.stop()
-                seaBgMusic.play()
-            }
-
-            const stayOnLand = () => {
-                player.setVelocityX(-100)
-                confirmation.setY(map.heightInPixels)
-                ok.setY(map.heightInPixels)
-                no.setY(map.heightInPixels)
-            }
-        
-        if (Math.abs(firstObj.body.center.x - secondObj.body.center.x) < 30) {
-            if (confirmation) {
-                confirmation.setY(player.y - 200)
-                confirmation.setX(player.x - 200)
-                ok.setY(confirmation.y + confirmation.height - 25)
-                no.setY(ok.y)
-                ok.setX(confirmation.x)
-                no.setX(ok.x + ok.width + 5)
-                confirmation.setText('Prête à prendre la mer ?')
-        
-                ok.removeAllListeners()
-                no.removeAllListeners()
-
-                ok.on('pointerdown', handleAllAboard)
-                no.on('pointerdown', stayOnLand)
-                return
-            }
-            confirmation = this.add.text(400, 200, "Prête à prendre la mer ?", {
+    function dialogManager ({scene, text, confirmCallback, cancelCallback}) {
+        let dialog;
+        let okBtn;
+        let noBtn;
+        function getDialog () {
+            if (dialog) return dialog
+            dialog = scene.add.text(400, 200, text, {
                 font: "18px monospace",
                 fill: "#ffffff",
                 padding: { x: 20, top: 20, bottom: 45 },
                 backgroundColor: "#000000"
-            })
-            confirmation.setDepth(100)
-            
+            }).setDepth(100)
 
-            // console.log({confirmation})
-
-            ok = this.add.text(confirmation.x, confirmation.y + confirmation.height - 25, ' - Oui', {
+            okBtn = scene.add.text(dialog.x, dialog.y + dialog.height - 25, ' - Oui', {
                 font: "18px monospace",
                 fill: "#ffffff",
                 backgroundColor: "#000000"
             })
-            no = this.add.text(ok.x + ok.width + 5, ok.y, ' - Non', {
+                .setDepth(101)
+                .setInteractive()
+            noBtn = scene.add.text(okBtn.x + okBtn.width + 5, okBtn.y, ' - Non', {
                 font: "18px monospace",
                 fill: "#ffffff",
                 backgroundColor: "#000000"
             })
+                .setDepth(101)
+                .setInteractive()
 
-            ok.setDepth(101)
-            no.setDepth(101)
-            ok.setInteractive()
-            no.setInteractive()
+            const setConfirmCallback = setActionCallback(okBtn)
+            const setCancelCallback = setActionCallback(noBtn)
+            setConfirmCallback(confirmCallback)
+            setCancelCallback(cancelCallback)
+            return dialog
+        }
+        function setText (text) {
+            return dialog.setText(text)
+        }
+        function open (frame) {
+            dialog.setY(frame.y - 200)
+            dialog.setX(frame.x - 200)
+            okBtn.setY(dialog.y + dialog.height - 25)
+            okBtn.setX(dialog.x)
+            noBtn.setY(okBtn.y)
+            noBtn.setX(okBtn.x + okBtn.width + 5)
+        }
 
-            
+        function close () {
+            dialog.setY(-1000)
+            dialog.setX(-1000)
+            okBtn.setY(dialog.y + dialog.height - 25)
+            okBtn.setX(dialog.x)
+            noBtn.setY(okBtn.y)
+            noBtn.setX(okBtn.x + okBtn.width + 5)
+        }
 
-            ok.on('pointerdown', handleAllAboard)
-            no.on('pointerdown', stayOnLand)
-            
+        setActionCallback = btn => (cb = () => {}) => {
+            btn.on('pointerdown', () => {
+                cb()
+                close()
+            })
+        }
+
+        return {
+            getDialog,
+            setText,
+            open,
+            close
+        }
+    }
+
+    // const carotte = dialogManager({
+    //     scene: this,
+    //     text: 'Prête à prendre la mer ?'
+    // })
+
+    function displayBoardingDialog (firstObj,secondObj,c) {
+
+
+        if (Math.abs(firstObj.body.center.x - secondObj.body.center.x) < 30) {
+            if (confirmation.getDialog()) {
+                // confirmation.setY(player.y - 200)
+                // confirmation.setX(player.x - 200)
+                // ok.setY(confirmation.y + confirmation.height - 25)
+                // no.setY(ok.y)
+                // ok.setX(confirmation.x)
+                // no.setX(ok.x + ok.width + 5)
+                // confirmation.setText('Prête à prendre la mer ?')
+
+                confirmation.open(player)
+
+                // ok.removeAllListeners()
+                // no.removeAllListeners()
+
+                // ok.on('pointerdown', handleAllAboard)
+                // no.on('pointerdown', stayOnLand)
+                return
+            }
+            // confirmation = this.add.text(400, 200, "Prête à prendre la mer ?", {
+            //     font: "18px monospace",
+            //     fill: "#ffffff",
+            //     padding: { x: 20, top: 20, bottom: 45 },
+            //     backgroundColor: "#000000"
+            // }).setDepth(100)
+            //
+            // ok = this.add.text(confirmation.x, confirmation.y + confirmation.height - 25, ' - Oui', {
+            //     font: "18px monospace",
+            //     fill: "#ffffff",
+            //     backgroundColor: "#000000"
+            // })
+            // no = this.add.text(ok.x + ok.width + 5, ok.y, ' - Non', {
+            //     font: "18px monospace",
+            //     fill: "#ffffff",
+            //     backgroundColor: "#000000"
+            // })
+            //
+            // ok.setDepth(101)
+            // no.setDepth(101)
+            // ok.setInteractive()
+            // no.setInteractive()
+            //
+            //
+            //
+            // ok.on('pointerdown', handleAllAboard)
+            // no.on('pointerdown', stayOnLand)
+
         } else {
-            if (confirmation) {
-                confirmation.setY(map.heightInPixels)
-                ok.setY(map.heightInPixels)
-                no.setY(map.heightInPixels)
+            if (confirmation.getDialog()) {
+                // confirmation.setY(map.heightInPixels)
+                // ok.setY(map.heightInPixels)
+                // no.setY(map.heightInPixels)
+                confirmation.close()
             }
         }
     }
